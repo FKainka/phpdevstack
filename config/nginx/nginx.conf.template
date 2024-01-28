@@ -1,0 +1,26 @@
+server {
+    listen 80;
+    server_name ${PROJECT_NAME}.${HOST_ADDRESS};
+
+    location / {
+        proxy_pass http://${APP_HOSTNAME}:80; # Hier sollte die IP oder der Hostname Ihres Joomla-Dienstes stehen
+    }
+}
+
+server {
+    listen 80;
+    server_name ${PROJECT_NAME}.php.${HOST_ADDRESS};
+
+    location / {
+        proxy_pass http://${PHPMYADMIN_HOSTNAME}:80; # Hier sollte die IP oder der Hostname Ihres phpMyAdmin-Dienstes stehen
+    }
+}
+
+server {
+    listen 80;
+    server_name ${PROJECT_NAME}.mail2.${HOST_ADDRESS};
+
+    location / {
+        proxy_pass http://${MAILHOG_HOSTNAME}:80; # Hier sollte die IP oder der Hostname Ihres Mailhog-Dienstes stehen
+    }
+}

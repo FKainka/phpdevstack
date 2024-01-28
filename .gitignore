@@ -1,0 +1,5 @@
+user/*
+db/*
+html/*
+config/sql/init/*
+config/nginx/nginx.conf

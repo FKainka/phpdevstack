@@ -1,0 +1,89 @@
+version: "3.0"
+
+services:
+  # PHP Development Service
+  phpdev:
+    hostname: ${APP_HOSTNAME}
+    env_file:
+      - .env
+    environment:
+      BASE_IMAGE: joomla:4.3.3-php8.0-apache
+    build: .
+    volumes:
+      - ./html:/var/www/html
+      # Uncomment the line below to override the default Joomla configuration.
+      # - ./config/joomla/configuration.php:/var/www/html/configuration.php
+      - ./user:/root
+      - ./config/php/conf.d/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+      - ./config/php/conf.d/error_reporting.ini:/usr/local/etc/php/conf.d/error_reporting.ini
+      - ./config/php/conf.d/joomlaphpoverides.ini:/usr/local/etc/php/conf.d/joomlaphpoverides.ini
+    # Uncomment the line below to expose port 80 if needed. Not needed in this case due to Nginx Proxy
+    # ports: 80:80
+
+  # MariaDB Service
+  db:
+    image: mariadb
+    restart: always
+    hostname: ${MYSQL_HOSTNAME}
+    env_file:
+      - .env
+    volumes:
+      - ./db:/var/lib/mysql
+      - ./config/sql/init:/docker-entrypoint-initdb.d/:ro # SQL initialization scripts. Put your db-Backup here
+
+  # phpMyAdmin Service
+  phpmyadmin:
+    image: phpmyadmin
+    hostname: ${PHPMYADMIN_HOSTNAME}
+    env_file:
+      - .env
+    restart: always
+    # Uncomment the line below to expose port 8080 if needed.
+    # ports: 8080:80
+    environment:  
+      - PMA_ARBITRARY=1
+    volumes: 
+      - ./config/phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php
+      - ./config/php/conf.d/joomlaphpoverides.ini:/usr/local/etc/php/conf.d/joomlaphpoverides.ini
+
+  # MailHog Service
+  mailhog:
+    hostname: ${MAILHOG_HOSTNAME}  
+    image: mailhog/mailhog:latest
+    env_file:
+      - .env
+    environment:
+      - MH_API_BIND_ADDR=0.0.0.0:80
+      - MH_UI_BIND_ADDR=0.0.0.0:80
+    # Uncomment the lines below to expose the web interface and SMTP server.
+    # ports:
+    #   - "8025:8025" # Web interface
+    #   - "1025:1025" # SMTP Server
+
+  # Nginx Proxy Service
+  nginx-proxy:
+    hostname: ${NGINX_HOSTNAME}  
+    image: nginx:latest
+    volumes:
+      - ./config/nginx:/etc/nginx/conf.d
+    entrypoint: /etc/nginx/conf.d/entrypoint.sh 
+    env_file:
+      - .env
+    depends_on:
+      - phpdev
+    # Uncomment the lines below to expose ports 80 and 443 if needed
+    # ports:
+    #   - "80:80"
+    #   - "443:443"
+    networks:
+      - default
+      - rev_proxy_net # This is the Network of an other Ngix Proxy if needed. Alse use The Ports above.
+
+# Networks configuration
+networks: 
+  default:
+      name: ${PROJECT_NAME}_proxy_net
+  # Only if another proxy server is used:
+  rev_proxy_net:
+    external:
+      name: rev_proxy_net 
